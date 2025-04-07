@@ -1,0 +1,470 @@
+
+<!DOCTYPE html>
+<html>
+    
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Speech Recognition and Dynamic Q&A</title>
+  <style>
+/* General Styling */
+/* General Styling */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    color: #212529;
+
+}
+
+/* Header Styling */
+header {
+    padding: 20px;
+    text-align: center;
+    background-color: #343a40;
+    color: #ffffff;
+    font-size: 2.5em;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* Main Content Styling */
+main {
+    margin: 20px auto;
+    max-width: 90%;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Speech Recognition Section */
+#speech-section {
+    margin: 20px 0;
+    padding: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: #f1f3f5;
+}
+
+/* Textarea Styling */
+textarea {
+    padding: 10px;
+    width: 100%;
+    border: 1px solid #adb5bd;
+    border-radius: 5px;
+    background: #ffffff;
+    color: #212529;
+    margin-bottom: 15px;
+    font-size: 1em;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+/* Styling for Questions */
+.question {
+    margin: 15px 0;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #495057;
+}
+
+/* Input Styling */
+input.answer {
+    width: 100%;
+    padding: 10px;
+    font-size: .5em;
+    border: 1px solid #adb5bd;
+    border-radius: 5px;
+    background: #ffffff;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+}
+
+/* Styling for Form Buttons */
+button {
+    padding: 10px 15px;
+    font-size: 1em;
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+/* Options Section */
+.options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.option {
+    padding: 10px 15px;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    text-align: center;
+    flex: 1;
+    font-size: 1em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.option:hover {
+    background-color: #dee2e6;
+    transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    main {
+        padding: 15px;
+        width: 95%;
+    }
+
+    .options {
+        flex-direction: column;
+    }
+
+    .option {
+        font-size: 1em;
+        padding: 10px;
+    }
+
+button {
+    width: 8em;
+    font-size: 0.9em;
+    padding: 8px;
+    display: block;
+    margin: 0 auto; /* Horizontally centers the button */
+}
+
+
+    textarea {
+        font-size: 0.9em;
+        padding: 8px;
+    }
+
+    header {
+        font-size: 2em;
+        padding: 15px;
+    }
+}
+.button-container {
+    display: flex; /* Arrange buttons in a row */
+    justify-content: center; /* Center them horizontally */
+    align-items: stretch; /* Align them vertically */
+    gap: 1em; /* Add spacing between the buttons */
+    padding: 10px; /* Adjust padding around the buttons */
+}
+
+
+  </style>
+</head>
+<body>
+  <h1>Speech Recognition with Dynamic Q&A</h1>
+
+  <!-- Textbox for JSON input -->
+  <label for="json-input">Paste JSON code here to populate answers:</label>
+  <textarea id="json-input" rows="5" placeholder='e.g., {"answers": {"summary": "", "q1": "John",.......}}'></textarea>
+  <button id="populate-answers">Populate Answers</button>
+
+  <!-- Textbox for Speech Recognition Results -->
+  <div>
+  <label for="speech-output">Speech Recognition Result:</label>
+  </div>
+  <textarea id="speechResult" rows="5" placeholder="Your speech will appear here..."></textarea>
+  <div class="button-container">
+  <button id="startButton">Start Speech Recognition</button>
+  <button id="stopButton">Stop Speech Recognition</button>
+  <button onclick="copyToClipboard()">Copy to Clipboard</button>
+</div>
+  <!-- Hidden Div to Store Results -->
+  <div id="stored-speech-result" style="display:none;"></div>
+
+  <!-- Container for Questions -->
+  <div id="questions-container"></div>
+
+  <script>
+    // Question and Option Database with IDs
+    const database = [
+    {
+        id: "summary",
+        question: "Summary of speech recognition?",
+        type: "text",
+        options: [],
+      },
+      {
+        id: "q1",
+        question: "What is your name?",
+        type: "text",
+        options: [],
+      },
+      {
+        id: "q2",
+        question: "What is your favorite color?",
+        type: "checkbox",
+        options: [
+          { label: "Red" },
+          { label: "Blue" },
+          { label: "Green" }
+        ],
+      },
+      {
+        id: "q3",
+        question: "What are your hobbies?",
+        type: "checkbox",
+        options: [
+          { label: "Reading" },
+          { label: "Cycling" },
+          { label: "Cooking" }
+        ],
+      },
+      {
+        id: "q4",
+        question: "What kind of pet do you like?",
+        type: "text",
+        options: [],
+      },
+      {
+        id: "q5",
+        question: "What jobs do you like?",
+        type: "checkbox",
+        options: [
+          { label: "Dentistry" },
+          { label: "Driving" },
+          { label: "Business" }
+        ],
+      },
+    ];
+
+    // Function to Render Questions with IDs
+    const renderQuestions = () => {
+      const container = document.getElementById("questions-container");
+      container.innerHTML = ""; // Clear existing content
+      database.forEach((item) => {
+        const questionElement = document.createElement("div");
+        questionElement.classList.add("question");
+        questionElement.id = item.id;
+
+        const textElement = document.createElement("p");
+        textElement.innerText = item.question;
+        questionElement.appendChild(textElement);
+
+        if (item.type === "text") {
+          const inputElement = document.createElement("input");
+          inputElement.type = "text";
+          inputElement.classList.add("answer");
+          inputElement.placeholder = "Type your answer here...";
+          questionElement.appendChild(inputElement);
+        } else if (item.type === "checkbox") {
+          const optionsContainer = document.createElement("div");
+          optionsContainer.classList.add("options");
+          item.options.forEach(option => {
+            const optionElement = document.createElement("label");
+            const inputElement = document.createElement("input");
+            inputElement.type = "checkbox";
+            inputElement.name = item.id;
+            inputElement.value = option.label;
+            optionElement.appendChild(inputElement);
+            optionElement.append(option.label);
+            optionsContainer.appendChild(optionElement);
+          });
+          questionElement.appendChild(optionsContainer);
+        }
+
+        container.appendChild(questionElement);
+      });
+    };
+
+    // Render Questions on Page Load
+    renderQuestions();
+
+    // Event Listener to Populate Answers from JSON Input
+    document.getElementById("populate-answers").addEventListener("click", () => {
+      const jsonInput = document.getElementById("json-input").value;
+      try {
+        const parsedData = JSON.parse(jsonInput);
+        if (parsedData.answers) {
+          const questionsContainer = document.getElementById("questions-container");
+          const questionElements = questionsContainer.children;
+
+          for (const [questionId, answer] of Object.entries(parsedData.answers)) {
+            const questionElement = Array.from(questionElements).find(
+              (element) => element.id === questionId
+            );
+
+            if (questionElement) {
+              const inputElements = questionElement.querySelectorAll("input");
+
+              inputElements.forEach((input) => {
+                if (input.type === "text" && typeof answer === "string") {
+                  input.value = answer;
+                }
+              });
+
+              if (Array.isArray(answer)) {
+                answer.forEach((newAnswer) => {
+                  const optionExists = Array.from(questionElement.querySelectorAll("input")).some(
+                    (input) => input.value === newAnswer
+                  );
+
+                  if (!optionExists) {
+                    // Dynamically add the new option
+                    const optionsContainer = questionElement.querySelector(".options");
+                    const optionElement = document.createElement("label");
+                    const inputElement = document.createElement("input");
+                    inputElement.type = "checkbox";
+                    inputElement.name = questionId;
+                    inputElement.value = newAnswer;
+                    inputElement.checked = true; // Automatically check new answer
+                    optionElement.appendChild(inputElement);
+                    optionElement.append(newAnswer);
+                    optionsContainer.appendChild(optionElement);
+                  } else {
+                    // Check the option if it already exists
+                    const matchingInput = Array.from(questionElement.querySelectorAll("input")).find(
+                      (input) => input.value === newAnswer
+                    );
+                    if (matchingInput) {
+                      matchingInput.checked = true;
+                    }
+                  }
+                });
+              }
+            }
+          }
+        } else {
+          alert("Invalid JSON structure! Make sure it contains an 'answers' object.");
+        }
+      } catch (error) {
+        alert("Invalid JSON format! Please check your input.");
+      }
+    });
+
+  // Speech Recognition Setup
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = true; // Enable continuous recognition
+    recognition.interimResults = false; // Use final results only
+    let isListening = false; // Flag for speech recognition
+    let fullTranscript = ""; // Store the full transcript
+    let wakeLock = null; // Store the wake lock object
+
+    async function requestWakeLock() {
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        console.log("Screen wake lock activated.");
+        wakeLock.addEventListener("release", () => {
+          console.log("Screen wake lock released.");
+        });
+      } catch (error) {
+        console.error("Wake lock request failed:", error);
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+        console.log("Screen wake lock released.");
+      }
+    }
+
+    recognition.onstart = function () {
+      console.log("Speech recognition started...");
+      requestWakeLock(); // Request screen wake lock when recognition starts
+    };
+
+    recognition.onresult = function (event) {
+      let currentTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          currentTranscript += result[0].transcript.trim() + " ";
+        }
+      }
+      fullTranscript += currentTranscript;
+      document.getElementById("speechResult").innerText = fullTranscript.trim();
+    };
+
+    recognition.onerror = function (event) {
+      console.error("Speech recognition error:", event.error);
+    };
+
+    recognition.onend = function () {
+      console.log("Speech recognition ended...");
+      releaseWakeLock(); // Release wake lock when recognition ends
+      if (isListening) {
+        recognition.start();
+      }
+    };
+
+    function startRecognition() {
+      isListening = true;
+      recognition.start();
+    }
+
+    function stopRecognition() {
+      isListening = false;
+      recognition.stop();
+      releaseWakeLock(); // Release wake lock when recognition is stopped
+    }
+
+    document.getElementById("startButton").addEventListener("click", startRecognition);
+    document.getElementById("stopButton").addEventListener("click", stopRecognition);
+
+    function copyToClipboard() {
+    // Get the dynamic speech recognition result from an element
+    const jsonOutput = document.getElementById("speechResult"); // Ensure this ID contains the speech recognition result
+    const speechRecognitionResult = jsonOutput.value;
+
+    // Define the fixed text to append
+    const fixedText = `
+Based on the following database of questions: \`${JSON.stringify(database)}\`, and the speech recognition result: \`${speechRecognitionResult}\`,
+Except the field type text consider all other as arrays and place them inside the array.
+Generate a JSON object in the format:
+
+{
+  "answers": {
+    "summary": "Joey introduced themselves, their favorite color is Yellow, and their hobbies include Reading, Cycling, and Cooking.",
+    "q1": "Joey",
+    // Other dynamic responses...
+  }
+}
+
+Make sure to map responses dynamically to the database, summarize the speech recognition data in the "summary" field, and include all mentioned answers even if they are not predefined in the database options.
+`;
+
+
+    // Combine the speech recognition result with the fixed text
+    const combinedText = fixedText;
+
+    // Create a temporary input element to hold the combined text
+    const tempInput = document.createElement("textarea");
+    tempInput.value = combinedText;
+
+    // Append the textarea to the body, select its content, and copy it
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand("copy");
+
+    // Remove the temporary textarea element after copying
+    document.body.removeChild(tempInput);
+
+    // Alert the user that the combined text was copied
+    alert("Combined text copied to clipboard!");
+}
+  </script>
+</body>
+</html>
+
+
+<!-- Based on the current file's speech recognition results. Generate a JSON object with: Question IDs mapped dynamically to their answers, by anlysing my current html file and speech recognition result, the first id is summary where i want summary from all responses. Checkbox type questions options available in the speech recognition result should be inside [] but exclude those are not mentioned. Except text field consider all other as array like [] -->
